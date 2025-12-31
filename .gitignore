@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Environment
+.env
+.venv/
+venv/
+ENV/
+
+# Secrets & tokens
+tokens.json
+
+# Archive (old/one-off analysis files)
+archive/
+
+# All data files (contains personal health information)
+data/
+glooko/*.csv
+dexcom_share/*.csv
+
+# IDE
+.idea/
+*.code-workspace
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+*.txt
+!requirements.txt
+
+# Jupyter
+.ipynb_checkpoints/
+
