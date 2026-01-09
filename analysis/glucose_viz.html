@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCN Model Comparison</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            color: #1a1a2e;
+            padding: 24px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: #1a1a2e;
+            letter-spacing: -0.5px;
+        }
+        
+        .input-section {
+            background: #f5f5f7;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-end;
+            margin-bottom: 16px;
+        }
+        
+        .input-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .input-field label {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        input[type="date"],
+        input[type="time"],
+        input[type="text"] {
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            background: #fff;
+            color: #1a1a2e;
+            font-size: 1rem;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+        
+        input[type="text"] {
+            width: 360px;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.2);
+        }
+        
+        button {
+            padding: 12px 32px;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(135deg, #4facfe 0%, #00c6fb 100%);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(79, 172, 254, 0.3);
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
+            margin-left: 16px;
+        }
+        
+        .nav-btn {
+            padding: 12px 20px;
+            background: #e8e8e8;
+            border: 1px solid #ccc;
+            color: #1a1a2e;
+        }
+        
+        .nav-btn:hover {
+            background: #d0d0d0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e0e0e0;
+        }
+        
+        .chart-container {
+            background: #f9f9f9;
+            border-radius: 16px;
+            padding: 24px 24px 32px 24px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 450px;
+        }
+        
+        .trend-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 16px 0 0 0;
+            overflow: visible;
+            position: relative;
+            min-height: 60px;
+        }
+        
+        .trend-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.75rem;
+            position: absolute;
+            transform: translateX(-50%);
+        }
+        
+        .trend-arrow {
+            font-size: 1.2rem;
+            margin-bottom: 2px;
+        }
+        
+        .trend-rate {
+            color: #666;
+            font-family: 'SF Mono', monospace;
+        }
+        
+        .arrow-up { color: #22c55e; }
+        .arrow-down { color: #ef4444; }
+        .arrow-flat { color: #eab308; }
+        
+        .status {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #4facfe;
+        }
+        
+        .info-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .legend-custom {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+            justify-content: center;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #555;
+        }
+        
+        .legend-line {
+            width: 24px;
+            height: 3px;
+            border-radius: 2px;
+        }
+        
+        .legend-area {
+            width: 24px;
+            height: 14px;
+            border-radius: 3px;
+        }
+        
+        .toggle-item {
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .toggle-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #4facfe;
+        }
+        
+        .toggle-item:has(input:not(:checked)) {
+            opacity: 0.5;
+        }
+        
+        .predictions-table {
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+        
+        .predictions-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        
+        .predictions-table th,
+        .predictions-table td {
+            padding: 10px 12px;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .predictions-table th {
+            color: #333;
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .predictions-table td {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            color: #1a1a2e;
+        }
+        
+        .predictions-table tr:hover td {
+            background: #f0f0f0;
+        }
+        
+        .predictions-table .row-label {
+            text-align: left;
+            font-family: inherit;
+            color: #666;
+        }
+        
+        .predictions-table .interval-width {
+            color: #f97316;
+        }
+        
+        .predictions-table .arrow-pred {
+            color: #a855f7;
+        }
+        
+        .predictions-table .delta {
+            color: #888;
+            font-size: 0.85em;
+        }
+        
+        .predictions-table .actual-row td:not(.row-label) {
+            color: #2563eb;
+        }
+        
+        .predictions-table .quantile-value {
+            color: #f97316;
+        }
+        
+        /* PMF Distribution Panel */
+        .pmf-panel {
+            margin-top: 24px;
+            background: #f5f5f7;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid #e0e0e0;
+            display: block;
+        }
+        
+        .pmf-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .pmf-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        
+        .pmf-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .pmf-horizon-select {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            background: #fff;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        
+        
+        .pmf-chart-wrapper {
+            height: 300px;
+            position: relative;
+        }
+        
+        .pmf-stats {
+            display: flex;
+            gap: 24px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .pmf-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .pmf-stat-label {
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+        }
+        
+        .pmf-stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-family: 'SF Mono', monospace;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="input-section">
+            <div class="input-group">
+                <div class="input-field">
+                    <label>Date</label>
+                    <input type="date" id="date-input">
+                </div>
+                <div class="input-field">
+                    <label>Time</label>
+                    <input type="time" id="time-input" value="12:00">
+                </div>
+                <button onclick="loadFromPicker()">View</button>
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="navigatePrev()" title="Previous reading (←)">← Prev</button>
+                    <button class="nav-btn" onclick="navigateNext()" title="Next reading (→)">Next →</button>
+                </div>
+            </div>
+            
+            <div class="divider">or paste timestamp from CSV</div>
+            
+            <div class="input-group">
+                <div class="input-field">
+                    <label>CSV Timestamp</label>
+                    <input type="text" id="csv-input" placeholder="2025-01-15T14:30:00-05:00">
+                </div>
+                <button onclick="loadFromCSV()">View</button>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div class="info-bar">
+                <span id="range-info"></span>
+                <span id="count-info"></span>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="glucoseChart"></canvas>
+            </div>
+            <div class="legend-custom">
+                <label class="legend-item toggle-item">
+                    <input type="checkbox" id="toggle-actual" checked onchange="toggleDataset('actual')">
+                    <div class="legend-line" style="background: #4facfe;"></div>
+                    <span>Actual Glucose</span>
+                </label>
+                <label class="legend-item toggle-item">
+                    <input type="checkbox" id="toggle-tcn-single-q50" checked onchange="toggleDataset('tcn-single-q50')">
+                    <div class="legend-line" style="background: #f97316;"></div>
+                    <span>Baseline (Single-Horizon) Q50</span>
+                </label>
+                <label class="legend-item toggle-item">
+                    <input type="checkbox" id="toggle-tcn-single-80pct" checked onchange="toggleDataset('tcn-single-80pct')">
+                    <div class="legend-area" style="background: rgba(249, 115, 22, 0.25);"></div>
+                    <span>Baseline 80% (Q10-Q90)</span>
+                </label>
+                <label class="legend-item toggle-item">
+                    <input type="checkbox" id="toggle-tcn-multi-q50" checked onchange="toggleDataset('tcn-multi-q50')">
+                    <div class="legend-line" style="background: #10b981;"></div>
+                    <span>E2 (Multi-Horizon) Q50</span>
+                </label>
+                <label class="legend-item toggle-item">
+                    <input type="checkbox" id="toggle-tcn-multi-80pct" checked onchange="toggleDataset('tcn-multi-80pct')">
+                    <div class="legend-area" style="background: rgba(16, 185, 129, 0.25);"></div>
+                    <span>E2 80% (Q10-Q90)</span>
+                </label>
+                <label class="legend-item toggle-item">
+                    <input type="checkbox" id="toggle-arrow" onchange="toggleDataset('arrow')">
+                    <div class="legend-line" style="background: #a855f7; border-style: dashed;"></div>
+                    <span>Trend Arrow</span>
+                </label>
+                <label class="legend-item toggle-item">
+                    <input type="checkbox" id="toggle-bolus" checked onchange="toggleDataset('bolus')">
+                    <div class="legend-line" style="background: #ec4899; width: 4px; height: 16px; border-radius: 2px;"></div>
+                    <span>Bolus</span>
+                </label>
+            </div>
+            <div class="trend-row" id="trend-row"></div>
+            <div class="predictions-table" id="predictions-table"></div>
+        </div>
+        
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <div class="pmf-panel" id="pmf-panel-single" style="flex: 1; min-width: 400px;">
+                <div class="pmf-header">
+                    <span class="pmf-title" style="color: #f97316;">Baseline (Single-Horizon)</span>
+                    <div class="pmf-controls">
+                        <select class="pmf-horizon-select" id="pmf-horizon-select" onchange="updatePMFCharts()">
+                            <option value="5">+5 min</option>
+                            <option value="10">+10 min</option>
+                            <option value="15" selected>+15 min</option>
+                            <option value="20">+20 min</option>
+                            <option value="25">+25 min</option>
+                            <option value="30">+30 min</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pmf-chart-wrapper">
+                    <canvas id="pmfChartSingle"></canvas>
+                </div>
+                <div class="pmf-stats" id="pmf-stats-single"></div>
+            </div>
+            
+            <div class="pmf-panel" id="pmf-panel-multi" style="flex: 1; min-width: 400px;">
+                <div class="pmf-header">
+                    <span class="pmf-title" style="color: #10b981;">E2 (Multi-Horizon)</span>
+                </div>
+                <div class="pmf-chart-wrapper">
+                    <canvas id="pmfChartMulti"></canvas>
+                </div>
+                <div class="pmf-stats" id="pmf-stats-multi"></div>
+            </div>
+        </div>
+        
+        <div class="status" id="status">Loading data...</div>
+    </div>
+
+    <script>
+        let allData = [];
+        let bolusData = [];  // Bolus events from Glooko
+        let chart = null;
+        let pmfChartSingle = null;
+        let pmfChartMulti = null;
+        let pmfDataSingle = null;  // PMF data for single-horizon model
+        let pmfDataMulti = null;   // PMF data for multi-horizon model
+        let currentDataIndex = -1;  // Track current position in data
+        let currentReading = null;  // Current reading for PMF display
+        
+        const PREDICTION_HORIZONS = [5, 10, 15, 20, 25, 30];
+        
+        const trendArrows = {
+            'doubleUp': '⇈',
+            'singleUp': '↑',
+            'fortyFiveUp': '↗',
+            'flat': '→',
+            'fortyFiveDown': '↘',
+            'singleDown': '↓',
+            'doubleDown': '⇊'
+        };
+        
+        const trendColors = {
+            'doubleUp': 'arrow-up',
+            'singleUp': 'arrow-up',
+            'fortyFiveUp': 'arrow-up',
+            'flat': 'arrow-flat',
+            'fortyFiveDown': 'arrow-down',
+            'singleDown': 'arrow-down',
+            'doubleDown': 'arrow-down'
+        };
+        
+        // Parse CSV text into array of objects
+        function parseCSV(text) {
+            const lines = text.trim().split('\n');
+            const headers = lines[0].split(',');
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                // Handle CSV with quoted fields containing commas
+                const row = {};
+                let currentField = '';
+                let fieldIndex = 0;
+                let inQuotes = false;
+                for (let j = 0; j < lines[i].length; j++) {
+                    const char = lines[i][j];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        row[headers[fieldIndex]] = currentField;
+                        currentField = '';
+                        fieldIndex++;
+                    } else {
+                        currentField += char;
+                    }
+                }
+                row[headers[fieldIndex]] = currentField;
+                data.push(row);
+            }
+            return data;
+        }
+        
+        // Load bolus data from CSV
+        async function loadBolusData() {
+            try {
+                let response;
+                try {
+                    response = await fetch('../glooko/bolus_data.csv');
+                    if (!response.ok) throw new Error('Not found');
+                } catch {
+                    response = await fetch('/glooko/bolus_data.csv');
+                }
+                const text = await response.text();
+                const parsed = parseCSV(text);
+                
+                // Filter to deliveredBolus only and parse dates
+                bolusData = parsed
+                    .filter(b => b.series === 'deliveredBolus')
+                    .map(b => ({
+                        date: new Date(b.timestamp.replace('Z', '')),
+                        insulin: parseFloat(b.insulin) || 0,
+                        carbs: parseFloat(b.carbs) || 0,
+                        timestamp: b.timestamp
+                    }))
+                    .filter(b => b.insulin > 0)  // Only show actual boluses
+                    .sort((a, b) => a.date - b.date);
+                
+                console.log(`Loaded ${bolusData.length} bolus events`);
+            } catch (error) {
+                console.log('Bolus data not available:', error.message);
+                bolusData = [];
+            }
+        }
+        
+        // Load data on page load
+        async function loadData() {
+            try {
+                // Load quantile predictions (cache-bust with timestamp)
+                const cacheBust = `?t=${Date.now()}`;
+                let response;
+                try {
+                    response = await fetch('../data/quantile_predictions.json' + cacheBust);
+                    if (!response.ok) throw new Error('Not found');
+                } catch {
+                    response = await fetch('/data/quantile_predictions.json' + cacheBust);
+                }
+                const jsonData = await response.json();
+                
+                // Handle structure with readings array
+                if (jsonData.readings) {
+                    allData = jsonData.readings;
+                } else {
+                    // Fallback for old format
+                    allData = jsonData;
+                }
+                
+                // Parse dates for readings
+                allData.forEach(d => {
+                    d.date = new Date(d.displayTime);
+                });
+                
+                // Sort by date
+                allData.sort((a, b) => a.date - b.date);
+                
+                // Load bolus data in parallel
+                await loadBolusData();
+                
+                // Show metadata info
+                const meta = jsonData.metadata;
+                const bolusInfo = bolusData.length > 0 ? ` | ${bolusData.length.toLocaleString()} bolus events` : '';
+                const infoText = meta 
+                    ? `Loaded ${allData.length.toLocaleString()} readings (${meta.test_start?.slice(0,10)} to ${meta.test_end?.slice(0,10)})${bolusInfo}. Comparing Baseline (6 single-horizon) vs E2 (multi-horizon).`
+                    : `Loaded ${allData.length.toLocaleString()} readings${bolusInfo}.`;
+                document.getElementById('status').textContent = infoText;
+                
+                // Set default date to middle of test set range (Nov-Dec 2025)
+                const defaultDate = new Date('2025-12-01T12:00:00');
+                document.getElementById('date-input').value = defaultDate.toISOString().split('T')[0];
+                document.getElementById('time-input').value = '12:00';
+                
+                // Load initial view
+                loadFromPicker();
+                
+            } catch (error) {
+                document.getElementById('status').textContent = 
+                    'Error loading data: ' + error.message;
+                console.error(error);
+            }
+        }
+        
+        function parseTimestamp(str) {
+            return new Date(str);
+        }
+        
+        function loadFromPicker() {
+            const date = document.getElementById('date-input').value;
+            const time = document.getElementById('time-input').value;
+            if (!date) {
+                alert('Please select a date');
+                return;
+            }
+            const timestamp = new Date(`${date}T${time || '12:00'}`);
+            renderChart(timestamp);
+        }
+        
+        function loadFromCSV() {
+            const csvValue = document.getElementById('csv-input').value.trim();
+            if (!csvValue) {
+                alert('Please paste a timestamp');
+                return;
+            }
+            const timestamp = parseTimestamp(csvValue);
+            if (isNaN(timestamp)) {
+                alert('Invalid timestamp format');
+                return;
+            }
+            renderChart(timestamp);
+        }
+        
+        function navigatePrev() {
+            if (currentDataIndex <= 0 || allData.length === 0) return;
+            currentDataIndex = Math.max(0, currentDataIndex - 1);
+            const reading = allData[currentDataIndex];
+            updateInputsFromDate(reading.date);
+            renderChart(reading.date);
+        }
+        
+        function navigateNext() {
+            if (currentDataIndex >= allData.length - 1 || allData.length === 0) return;
+            currentDataIndex = Math.min(allData.length - 1, currentDataIndex + 1);
+            const reading = allData[currentDataIndex];
+            updateInputsFromDate(reading.date);
+            renderChart(reading.date);
+        }
+        
+        function updateInputsFromDate(date) {
+            document.getElementById('date-input').value = date.toISOString().split('T')[0];
+            document.getElementById('time-input').value = date.toTimeString().slice(0, 5);
+        }
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return; // Don't navigate when typing
+            if (e.key === 'ArrowLeft') {
+                navigatePrev();
+            } else if (e.key === 'ArrowRight') {
+                navigateNext();
+            }
+        });
+        
+        function toggleDataset(type) {
+            if (!chart) return;
+            
+            // Dataset indices:
+            // 0=glucose, 1=Single Q90, 2=Single Q10, 3=Single Q50, 4=Multi Q90, 5=Multi Q10, 6=Multi Q50, 7=arrow
+            if (type === 'actual') {
+                chart.data.datasets[0].hidden = !document.getElementById('toggle-actual').checked;
+            } else if (type === 'tcn-single-q50') {
+                chart.data.datasets[3].hidden = !document.getElementById('toggle-tcn-single-q50').checked;
+            } else if (type === 'tcn-single-80pct') {
+                const show = document.getElementById('toggle-tcn-single-80pct').checked;
+                chart.data.datasets[1].hidden = !show;  // Single Q90
+                chart.data.datasets[2].hidden = !show;  // Single Q10
+            } else if (type === 'tcn-multi-q50') {
+                chart.data.datasets[6].hidden = !document.getElementById('toggle-tcn-multi-q50').checked;
+            } else if (type === 'tcn-multi-80pct') {
+                const show = document.getElementById('toggle-tcn-multi-80pct').checked;
+                chart.data.datasets[4].hidden = !show;  // Multi Q90
+                chart.data.datasets[5].hidden = !show;  // Multi Q10
+            } else if (type === 'arrow') {
+                chart.data.datasets[7].hidden = !document.getElementById('toggle-arrow').checked;
+            } else if (type === 'bolus') {
+                // Toggle bolus annotations visibility
+                const show = document.getElementById('toggle-bolus').checked;
+                const annotations = chart.options.plugins.annotation.annotations;
+                for (const key in annotations) {
+                    if (key.startsWith('bolus_')) {
+                        annotations[key].display = show;
+                    }
+                }
+            }
+            
+            chart.update();
+        }
+        
+        
+        function renderChart(centerTime) {
+            const oneHour = 60 * 60 * 1000;
+            const startTime = new Date(centerTime.getTime() - oneHour);
+            const endTime = new Date(centerTime.getTime() + oneHour);
+            
+            // Filter data to ±1 hour window
+            const windowData = allData.filter(d => 
+                d.date >= startTime && d.date <= endTime
+            );
+            
+            if (windowData.length === 0) {
+                document.getElementById('status').textContent = 
+                    'No data found for this time range.';
+                return;
+            }
+            
+            document.getElementById('status').textContent = '';
+            document.getElementById('range-info').textContent = 
+                `${startTime.toLocaleString()} — ${endTime.toLocaleString()}`;
+            document.getElementById('count-info').textContent = 
+                `${windowData.length} readings`;
+            
+            // Prepare chart data - actual glucose readings
+            const labels = windowData.map(d => d.date);
+            const values = windowData.map(d => d.value);
+            
+            // Find reading closest to center time
+            let closestIdx = 0;
+            let closestDiff = Infinity;
+            windowData.forEach((d, i) => {
+                const diff = Math.abs(d.date - centerTime);
+                if (diff < closestDiff) {
+                    closestDiff = diff;
+                    closestIdx = i;
+                }
+            });
+            
+            const closestReading = windowData[closestIdx];
+            const startValue = closestReading.value;
+            const startDate = closestReading.date;
+            
+            // Store for PMF visualization
+            currentReading = closestReading;
+            
+            // Update current index in full dataset for navigation
+            currentDataIndex = allData.findIndex(d => d.displayTime === closestReading.displayTime);
+            
+            // Trend arrow midpoint rates (for arrow-based prediction)
+            const trendMidpoints = {
+                'doubleUp': 3.5,      // > 3.0
+                'singleUp': 2.5,      // 2.0 to 3.0
+                'fortyFiveUp': 1.5,   // 1.0 to 2.0
+                'flat': 0.0,          // -1.0 to 1.0
+                'fortyFiveDown': -1.5, // -2.0 to -1.0
+                'singleDown': -2.5,   // -3.0 to -2.0
+                'doubleDown': -3.5    // < -3.0
+            };
+            const trendRate = trendMidpoints[closestReading.trend] ?? 0;
+            
+            // Build prediction fan data points
+            const predictionTimes = [];
+            
+            // TCN Single-Horizon (6 separate models) - orange
+            const single_q10Values = [];
+            const single_q50Values = [];
+            const single_q90Values = [];
+            
+            // TCN Multi-Horizon (shared backbone) - green
+            const multi_q10Values = [];
+            const multi_q50Values = [];
+            const multi_q90Values = [];
+            
+            const arrowPredValues = [];  // Trend arrow prediction
+            
+            // Start with current point
+            predictionTimes.push(startDate);
+            single_q10Values.push(startValue);
+            single_q50Values.push(startValue);
+            single_q90Values.push(startValue);
+            multi_q10Values.push(startValue);
+            multi_q50Values.push(startValue);
+            multi_q90Values.push(startValue);
+            arrowPredValues.push(startValue);
+            
+            // Check if predictions are available
+            const hasSingle = closestReading.tcn_single_q50_5 !== undefined;
+            const hasMulti = closestReading.tcn_multi_q50_5 !== undefined;
+            
+            // Add predictions for each horizon
+            for (const mins of PREDICTION_HORIZONS) {
+                const futureTime = new Date(startDate.getTime() + mins * 60 * 1000);
+                predictionTimes.push(futureTime);
+                
+                // TCN Single-Horizon predictions
+                const single_q10 = closestReading[`tcn_single_q10_${mins}`];
+                const single_q50 = closestReading[`tcn_single_q50_${mins}`];
+                const single_q90 = closestReading[`tcn_single_q90_${mins}`];
+                
+                if (single_q50 !== undefined) {
+                    single_q10Values.push(Math.max(40, Math.min(420, single_q10)));
+                    single_q50Values.push(Math.max(40, Math.min(420, single_q50)));
+                    single_q90Values.push(Math.max(40, Math.min(420, single_q90)));
+                } else {
+                    single_q10Values.push(null);
+                    single_q50Values.push(null);
+                    single_q90Values.push(null);
+                }
+                
+                // TCN Multi-Horizon predictions
+                const multi_q10 = closestReading[`tcn_multi_q10_${mins}`];
+                const multi_q50 = closestReading[`tcn_multi_q50_${mins}`];
+                const multi_q90 = closestReading[`tcn_multi_q90_${mins}`];
+                
+                if (multi_q50 !== undefined) {
+                    multi_q10Values.push(Math.max(40, Math.min(420, multi_q10)));
+                    multi_q50Values.push(Math.max(40, Math.min(420, multi_q50)));
+                    multi_q90Values.push(Math.max(40, Math.min(420, multi_q90)));
+                } else {
+                    multi_q10Values.push(null);
+                    multi_q50Values.push(null);
+                    multi_q90Values.push(null);
+                }
+                
+                // Arrow-based linear prediction
+                const arrowPred = startValue + (trendRate * mins);
+                arrowPredValues.push(Math.max(40, Math.min(420, arrowPred)));
+            }
+            
+            // Calculate y-axis bounds based on visible data
+            const allVisibleValues = [
+                ...values,
+                ...single_q10Values.filter(v => v !== null),
+                ...single_q50Values.filter(v => v !== null),
+                ...single_q90Values.filter(v => v !== null),
+                ...multi_q10Values.filter(v => v !== null),
+                ...multi_q50Values.filter(v => v !== null),
+                ...multi_q90Values.filter(v => v !== null),
+                ...arrowPredValues.filter(v => v !== null)
+            ];
+            const minValue = Math.min(...allVisibleValues);
+            const maxValue = Math.max(...allVisibleValues);
+            const padding = (maxValue - minValue) * 0.15; // 15% padding
+            const yMin = Math.max(40, Math.floor((minValue - padding) / 10) * 10);
+            const yMax = Math.min(420, Math.ceil((maxValue + padding) / 10) * 10);
+            
+            // Destroy existing chart
+            if (chart) {
+                chart.destroy();
+            }
+            
+            // Build bolus annotations for current time window
+            const bolusAnnotations = {};
+            const showBolus = document.getElementById('toggle-bolus')?.checked ?? true;
+            const windowBoluses = bolusData.filter(b => 
+                b.date >= startTime && b.date <= endTime
+            );
+            windowBoluses.forEach((bolus, i) => {
+                bolusAnnotations[`bolus_${i}`] = {
+                    type: 'line',
+                    xMin: bolus.date.getTime(),
+                    xMax: bolus.date.getTime(),
+                    borderColor: 'rgba(236, 72, 153, 0.8)',
+                    borderWidth: 2,
+                    borderDash: [4, 2],
+                    display: showBolus,
+                    label: {
+                        display: true,
+                        content: `${bolus.insulin}u`,
+                        position: 'start',
+                        backgroundColor: 'rgba(236, 72, 153, 0.9)',
+                        color: '#fff',
+                        font: { size: 10, weight: 'bold' },
+                        padding: 3,
+                        borderRadius: 3
+                    }
+                };
+            });
+            
+            // Create new chart
+            const ctx = document.getElementById('glucoseChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        // 0: Actual glucose readings
+                        {
+                            label: 'Glucose (mg/dL)',
+                            data: windowData.map(d => ({ x: d.date, y: d.value })),
+                            borderColor: '#4facfe',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#4facfe',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 1,
+                            fill: false,
+                            tension: 0.2,
+                            order: 1,
+                            hidden: !document.getElementById('toggle-actual')?.checked
+                        },
+                        // 1: Single-Horizon Q90 upper bound (filled to Q10)
+                        {
+                            label: 'Baseline Q90',
+                            data: predictionTimes.map((t, i) => ({ x: t, y: single_q90Values[i] })),
+                            borderColor: 'rgba(249, 115, 22, 0.5)',
+                            backgroundColor: 'rgba(249, 115, 22, 0.15)',
+                            borderWidth: 1,
+                            borderDash: [4, 4],
+                            pointRadius: 3,
+                            pointBackgroundColor: 'rgba(249, 115, 22, 0.7)',
+                            fill: '+1', // Fill to next dataset (Q10)
+                            tension: 0.3,
+                            order: 10,
+                            hidden: !document.getElementById('toggle-tcn-single-80pct')?.checked
+                        },
+                        // 2: Single-Horizon Q10 lower bound
+                        {
+                            label: 'Baseline Q10',
+                            data: predictionTimes.map((t, i) => ({ x: t, y: single_q10Values[i] })),
+                            borderColor: 'rgba(249, 115, 22, 0.5)',
+                            backgroundColor: 'transparent',
+                            borderWidth: 1,
+                            borderDash: [4, 4],
+                            pointRadius: 3,
+                            pointBackgroundColor: 'rgba(249, 115, 22, 0.7)',
+                            fill: false,
+                            tension: 0.3,
+                            order: 11,
+                            hidden: !document.getElementById('toggle-tcn-single-80pct')?.checked
+                        },
+                        // 3: Single-Horizon Q50 median prediction
+                        {
+                            label: 'Baseline Q50',
+                            data: predictionTimes.map((t, i) => ({ x: t, y: single_q50Values[i] })),
+                            borderColor: '#f97316',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            pointRadius: single_q50Values.map(v => v !== null ? 5 : 0),
+                            pointBackgroundColor: '#f97316',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            fill: false,
+                            tension: 0.3,
+                            spanGaps: false,
+                            order: 2,
+                            hidden: !document.getElementById('toggle-tcn-single-q50')?.checked
+                        },
+                        // 4: Multi-Horizon Q90 upper bound
+                        {
+                            label: 'E2 Q90',
+                            data: predictionTimes.map((t, i) => ({ x: t, y: multi_q90Values[i] })),
+                            borderColor: 'rgba(16, 185, 129, 0.5)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                            borderWidth: 1,
+                            borderDash: [4, 4],
+                            pointRadius: multi_q90Values.map(v => v !== null ? 4 : 0),
+                            pointBackgroundColor: 'rgba(16, 185, 129, 0.7)',
+                            fill: '+1', // Fill to Multi Q10
+                            tension: 0.3,
+                            order: 8,
+                            spanGaps: false,
+                            hidden: !document.getElementById('toggle-tcn-multi-80pct')?.checked
+                        },
+                        // 5: Multi-Horizon Q10 lower bound
+                        {
+                            label: 'E2 Q10',
+                            data: predictionTimes.map((t, i) => ({ x: t, y: multi_q10Values[i] })),
+                            borderColor: 'rgba(16, 185, 129, 0.5)',
+                            backgroundColor: 'transparent',
+                            borderWidth: 1,
+                            borderDash: [4, 4],
+                            pointRadius: multi_q10Values.map(v => v !== null ? 4 : 0),
+                            pointBackgroundColor: 'rgba(16, 185, 129, 0.7)',
+                            fill: false,
+                            tension: 0.3,
+                            order: 9,
+                            spanGaps: false,
+                            hidden: !document.getElementById('toggle-tcn-multi-80pct')?.checked
+                        },
+                        // 6: Multi-Horizon Q50 median prediction
+                        {
+                            label: 'E2 Q50',
+                            data: predictionTimes.map((t, i) => ({ x: t, y: multi_q50Values[i] })),
+                            borderColor: '#10b981',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            pointRadius: multi_q50Values.map(v => v !== null ? 6 : 0),
+                            pointBackgroundColor: '#10b981',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            fill: false,
+                            tension: 0.3,
+                            order: 3,
+                            spanGaps: false,
+                            hidden: !document.getElementById('toggle-tcn-multi-q50')?.checked
+                        },
+                        // 7: Trend arrow prediction line
+                        {
+                            label: `Arrow ${trendArrows[closestReading.trend] || ''} (${trendRate >= 0 ? '+' : ''}${trendRate.toFixed(1)}/min)`,
+                            data: predictionTimes.map((t, i) => ({ x: t, y: arrowPredValues[i] })),
+                            borderColor: '#a855f7',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [8, 4],
+                            pointRadius: 4,
+                            pointBackgroundColor: '#a855f7',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 1,
+                            fill: false,
+                            tension: 0,
+                            order: 4,
+                            hidden: !document.getElementById('toggle-arrow')?.checked
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'nearest'
+                    },
+                    onClick: function(event, elements) {
+                        // Handle double-click: navigate to clicked point
+                        if (event.native.detail === 2 && elements.length > 0) {
+                            const element = elements[0];
+                            const datasetIndex = element.datasetIndex;
+                            const index = element.index;
+                            const dataset = chart.data.datasets[datasetIndex];
+                            const point = dataset.data[index];
+                            
+                            if (point && point.x) {
+                                const clickedDate = new Date(point.x);
+                                // Update the date/time inputs
+                                document.getElementById('date-input').value = clickedDate.toISOString().split('T')[0];
+                                const hours = clickedDate.getHours().toString().padStart(2, '0');
+                                const mins = clickedDate.getMinutes().toString().padStart(2, '0');
+                                document.getElementById('time-input').value = `${hours}:${mins}`;
+                                // Re-render chart with new center
+                                renderChart(clickedDate);
+                            }
+                        }
+                    },
+                    plugins: {
+                        annotation: {
+                            annotations: bolusAnnotations
+                        },
+                        legend: {
+                            display: false  // Using custom legend
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                            titleFont: { size: 14 },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            callbacks: {
+                                title: function(context) {
+                                    const point = context[0];
+                                    if (point && point.raw && point.raw.x) {
+                                        return new Date(point.raw.x).toLocaleString();
+                                    }
+                                    return '';
+                                },
+                                label: function(context) {
+                                    const dsIndex = context.datasetIndex;
+                                    const value = context.raw.y;
+                                    
+                                    if (value === null) return null;
+                                    
+                                    if (dsIndex === 0) {
+                                        // Actual glucose
+                                        const dataIndex = context.dataIndex;
+                                        const d = windowData[dataIndex];
+                                        if (d) {
+                                            return [
+                                                `Glucose: ${d.value} mg/dL`,
+                                                `Trend: ${trendArrows[d.trend] || d.trend} (${d.trendRate?.toFixed(1) || '?'} mg/dL/min)`
+                                            ];
+                                        }
+                                        return `Glucose: ${Math.round(value)} mg/dL`;
+                                    } else if (dsIndex === 1) {
+                                        return `Baseline Q90: ${Math.round(value)} mg/dL`;
+                                    } else if (dsIndex === 2) {
+                                        return `Baseline Q10: ${Math.round(value)} mg/dL`;
+                                    } else if (dsIndex === 3) {
+                                        return `Baseline Q50: ${Math.round(value)} mg/dL`;
+                                    } else if (dsIndex === 4) {
+                                        return `E2 Q90: ${Math.round(value)} mg/dL`;
+                                    } else if (dsIndex === 5) {
+                                        return `E2 Q10: ${Math.round(value)} mg/dL`;
+                                    } else if (dsIndex === 6) {
+                                        return `E2 Q50: ${Math.round(value)} mg/dL`;
+                                    } else if (dsIndex === 7) {
+                                        return `Arrow: ${Math.round(value)} mg/dL`;
+                                    }
+                                    return `${Math.round(value)} mg/dL`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            min: startTime.getTime(),
+                            max: endTime.getTime(),
+                            time: {
+                                displayFormats: {
+                                    minute: 'HH:mm'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                color: '#555',
+                                maxRotation: 90,
+                                minRotation: 90,
+                                autoSkip: false
+                            },
+                            afterBuildTicks: function(axis) {
+                                // Use actual data point timestamps (every 5 min)
+                                const dataTimes = windowData.map(d => d.date.getTime());
+                                axis.ticks = dataTimes.map(t => ({ value: t }));
+                            }
+                        },
+                        y: {
+                            min: yMin,
+                            max: yMax,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.08)'
+                            },
+                            ticks: {
+                                color: '#555'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Render trend arrows below chart
+            renderTrendRow(windowData);
+            
+            // Render predictions table
+            renderPredictionsTable(startValue, closestReading, trendRate, windowData);
+            
+            // Update PMF chart
+            updatePMFCharts();
+        }
+        
+        function renderTrendRow(data) {
+            const container = document.getElementById('trend-row');
+            container.innerHTML = '';
+            
+            setTimeout(() => {
+                if (!chart) return;
+                
+                const xScale = chart.scales.x;
+                container.style.height = '60px';
+                
+                const step = Math.max(1, Math.floor(data.length / 25));
+                
+                for (let i = 0; i < data.length; i += step) {
+                    const d = data[i];
+                    const xPixel = xScale.getPixelForValue(d.date);
+                    
+                    const item = document.createElement('div');
+                    item.className = 'trend-item';
+                    item.style.left = `${xPixel}px`;
+                    
+                    const arrow = document.createElement('div');
+                    arrow.className = `trend-arrow ${trendColors[d.trend] || ''}`;
+                    arrow.textContent = trendArrows[d.trend] || d.trend;
+                    
+                    const rate = document.createElement('div');
+                    rate.className = 'trend-rate';
+                    rate.textContent = d.trendRate?.toFixed(1) || '';
+                    
+                    item.appendChild(arrow);
+                    item.appendChild(rate);
+                    container.appendChild(item);
+                }
+            }, 100);
+        }
+        
+        function renderPredictionsTable(startValue, reading, trendRate, windowData) {
+            const container = document.getElementById('predictions-table');
+            
+            // Helper to format value with delta
+            const formatWithDelta = (absValue) => {
+                const delta = Math.round(absValue - startValue);
+                const deltaStr = delta >= 0 ? `+${delta}` : `${delta}`;
+                return `${Math.round(absValue)} <span class="delta">(${deltaStr})</span>`;
+            };
+            
+            // Find current reading index in windowData
+            const currentTime = reading.date.getTime();
+            const currentIdx = windowData.findIndex(d => d.date.getTime() === currentTime);
+            
+            // Helper to get actual future value at +X minutes
+            const getActualAt = (minutes) => {
+                const stepsAhead = minutes / 5;  // 5-minute intervals
+                const futureIdx = currentIdx + stepsAhead;
+                if (futureIdx >= 0 && futureIdx < windowData.length) {
+                    return windowData[futureIdx].value;
+                }
+                return null;
+            };
+            
+            // Check if predictions are available
+            const hasSingleTCN = PREDICTION_HORIZONS.some(m => reading[`tcn_single_q50_${m}`] !== undefined);
+            const hasMultiTCN = PREDICTION_HORIZONS.some(m => reading[`tcn_multi_q50_${m}`] !== undefined);
+            
+            // Build table rows - comparing Single-Horizon vs Multi-Horizon TCN
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            ${PREDICTION_HORIZONS.map(m => `<th>+${m} min</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="actual-row">
+                            <td class="row-label">Actual</td>
+                            ${PREDICTION_HORIZONS.map(m => {
+                                const actual = getActualAt(m);
+                                if (actual !== null) {
+                                    return `<td>${formatWithDelta(actual)}</td>`;
+                                }
+                                return `<td>—</td>`;
+                            }).join('')}
+                        </tr>
+                        <tr style="border-top: 2px solid #e0e0e0;">
+                            <td class="row-label" style="color: #f97316; font-weight: bold;">Baseline Q50</td>
+                            ${PREDICTION_HORIZONS.map(m => {
+                                const val = reading[`tcn_single_q50_${m}`];
+                                if (val !== undefined) {
+                                    return `<td class="quantile-value" style="font-weight: bold;">${formatWithDelta(val)}</td>`;
+                                }
+                                return `<td style="color: #999;">—</td>`;
+                            }).join('')}
+                        </tr>
+                        <tr>
+                            <td class="row-label" style="color: #f97316;">Baseline Q10</td>
+                            ${PREDICTION_HORIZONS.map(m => {
+                                const val = reading[`tcn_single_q10_${m}`];
+                                if (val !== undefined) {
+                                    return `<td class="quantile-value">${formatWithDelta(val)}</td>`;
+                                }
+                                return `<td style="color: #999;">—</td>`;
+                            }).join('')}
+                        </tr>
+                        <tr>
+                            <td class="row-label" style="color: #f97316;">Baseline Q90</td>
+                            ${PREDICTION_HORIZONS.map(m => {
+                                const val = reading[`tcn_single_q90_${m}`];
+                                if (val !== undefined) {
+                                    return `<td class="quantile-value">${formatWithDelta(val)}</td>`;
+                                }
+                                return `<td style="color: #999;">—</td>`;
+                            }).join('')}
+                        </tr>
+                        <tr>
+                            <td class="row-label" style="color: #f97316;">Baseline Width</td>
+                            ${PREDICTION_HORIZONS.map(m => {
+                                const q10 = reading[`tcn_single_q10_${m}`];
+                                const q90 = reading[`tcn_single_q90_${m}`];
+                                if (q10 !== undefined && q90 !== undefined) {
+                                    const width = q90 - q10;
+                                    return `<td class="interval-width">${width.toFixed(0)}</td>`;
+                                }
+                                return `<td style="color: #999;">—</td>`;
+                            }).join('')}
+                        </tr>
+                        <tr style="border-top: 2px solid #e0e0e0;">
+                            <td class="row-label" style="color: #10b981; font-weight: bold;">E2 Q50</td>
+                            ${PREDICTION_HORIZONS.map(m => {
+                                const val = reading[`tcn_multi_q50_${m}`];
+                                if (val !== undefined) {
+                                    return `<td style="color: #10b981; font-weight: bold;">${formatWithDelta(val)}</td>`;
+                                }
+                                return `<td style="color: #999;">—</td>`;
+                            }).join('')}
+                        </tr>
+                        <tr>
+                            <td class="row-label" style="color: #10b981;">E2 Q10</td>
+                            ${PREDICTION_HORIZONS.map(m => {
+                                const val = reading[`tcn_multi_q10_${m}`];
+                                if (val !== undefined) {
+                                    return `<td style="color: #10b981;">${formatWithDelta(val)}</td>`;
+                                }
+                                return `<td style="color: #999;">—</td>`;
+                            }).join('')}
+                        </tr>
+                        <tr>
+                            <td class="row-label" style="color: #10b981;">E2 Q90</td>
+                            ${PREDICTION_HORIZONS.map(m => {
+                                const val = reading[`tcn_multi_q90_${m}`];
+                                if (val !== undefined) {
+                                    return `<td style="color: #10b981;">${formatWithDelta(val)}</td>`;
+                                }
+                                return `<td style="color: #999;">—</td>`;
+                            }).join('')}
+                        </tr>
+                        <tr>
+                            <td class="row-label" style="color: #10b981;">E2 Width</td>
+                            ${PREDICTION_HORIZONS.map(m => {
+                                const q10 = reading[`tcn_multi_q10_${m}`];
+                                const q90 = reading[`tcn_multi_q90_${m}`];
+                                if (q10 !== undefined && q90 !== undefined) {
+                                    const width = q90 - q10;
+                                    return `<td style="color: #10b981;">${width.toFixed(0)}</td>`;
+                                }
+                                return `<td style="color: #999;">—</td>`;
+                            }).join('')}
+                        </tr>
+                        <tr style="border-top: 2px solid #e0e0e0;">
+                            <td class="row-label" style="color: #a855f7;">Arrow Pred</td>
+                            ${PREDICTION_HORIZONS.map(m => {
+                                const pred = startValue + (trendRate * m);
+                                return `<td class="arrow-pred">${formatWithDelta(pred)}</td>`;
+                            }).join('')}
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        // ============================================================
+        // PMF Distribution Visualization (Both Models)
+        // ============================================================
+        
+        async function loadPMFData(modelType) {
+            // Single-horizon uses the existing PMF data file
+            // Multi-horizon will be approximated from quantiles
+            if (modelType === 'multi') {
+                return { approximated: true };  // Flag to use Gaussian approximation
+            }
+            
+            try {
+                let response;
+                try {
+                    response = await fetch('../data/tcn_pmf_data.json');
+                    if (!response.ok) throw new Error('Not found');
+                } catch {
+                    response = await fetch('/data/tcn_pmf_data.json');
+                }
+                const data = await response.json();
+                console.log(`Loaded single PMF data: ${data.timestamps?.length || 0} timestamps`);
+                return data;
+            } catch (error) {
+                console.log(`PMF data not available:`, error.message);
+                return null;
+            }
+        }
+        
+        async function updatePMFCharts() {
+            if (!currentReading) return;
+            
+            const horizon = parseInt(document.getElementById('pmf-horizon-select').value);
+            
+            // Load PMF data for both models if needed
+            if (!pmfDataSingle) pmfDataSingle = await loadPMFData('single');
+            if (!pmfDataMulti) pmfDataMulti = await loadPMFData('multi');
+            
+            // Get actual delta if available
+            const stepsAhead = horizon / 5;
+            const futureIdx = currentDataIndex + stepsAhead;
+            let actualDelta = null;
+            if (futureIdx >= 0 && futureIdx < allData.length) {
+                actualDelta = allData[futureIdx].value - currentReading.value;
+            }
+            
+            // Render both charts
+            renderPMFForModel('single', pmfDataSingle, horizon, actualDelta, '#f97316');
+            renderPMFForModel('multi', pmfDataMulti, horizon, actualDelta, '#10b981');
+        }
+        
+        function renderPMFForModel(modelType, pmfData, horizon, actualDelta, color) {
+            const chartId = modelType === 'single' ? 'pmfChartSingle' : 'pmfChartMulti';
+            const statsId = modelType === 'single' ? 'pmf-stats-single' : 'pmf-stats-multi';
+            const statsDiv = document.getElementById(statsId);
+            
+            // Destroy existing chart
+            if (modelType === 'single' && pmfChartSingle) {
+                pmfChartSingle.destroy();
+                pmfChartSingle = null;
+            }
+            if (modelType === 'multi' && pmfChartMulti) {
+                pmfChartMulti.destroy();
+                pmfChartMulti = null;
+            }
+            
+            if (!pmfData) {
+                statsDiv.innerHTML = '<div style="color: #999; text-align: center; padding: 20px;">PMF data not available</div>';
+                return;
+            }
+            
+            // For multi-horizon, create approximate Gaussian from quantiles
+            if (pmfData.approximated) {
+                const q10Key = `tcn_multi_q10_${horizon}`;
+                const q50Key = `tcn_multi_q50_${horizon}`;
+                const q90Key = `tcn_multi_q90_${horizon}`;
+                
+                if (currentReading[q50Key] === undefined) {
+                    statsDiv.innerHTML = '<div style="color: #999;">No predictions</div>';
+                    return;
+                }
+                
+                const value = currentReading.value;
+                const q10 = currentReading[q10Key] - value;
+                const q50 = currentReading[q50Key] - value;
+                const q90 = currentReading[q90Key] - value;
+                
+                // Approximate std from Q10-Q90 (80% interval = 2.56 std)
+                const std = (q90 - q10) / 2.56;
+                const mean = q50;
+                
+                // Generate Gaussian PMF
+                const binCenters = [];
+                const pmf = [];
+                for (let x = -100; x <= 120; x += 1) {
+                    binCenters.push(x);
+                    const z = (x - mean) / std;
+                    pmf.push(Math.exp(-0.5 * z * z) / (std * Math.sqrt(2 * Math.PI)));
+                }
+                // Normalize
+                const sum = pmf.reduce((a, b) => a + b, 0);
+                for (let i = 0; i < pmf.length; i++) pmf[i] /= sum;
+                
+                renderPMFChart(chartId, 'pmfChartMulti', pmf, horizon, actualDelta, binCenters, color, statsDiv, modelType);
+                return;
+            }
+            
+            // Find PMF index for current timestamp
+            const timestamp = new Date(currentReading.displayTime);
+            const key = `${timestamp.getFullYear()}-${String(timestamp.getMonth() + 1).padStart(2, '0')}-${String(timestamp.getDate()).padStart(2, '0')} ${String(timestamp.getHours()).padStart(2, '0')}:${String(timestamp.getMinutes()).padStart(2, '0')}`;
+            
+            let idx = pmfData.index?.[key];
+            if (idx === undefined) {
+                const minutes = timestamp.getMinutes();
+                for (let offset of [-1, 1, -2, 2]) {
+                    const nearMin = String(Math.max(0, Math.min(59, minutes + offset))).padStart(2, '0');
+                    const nearKey = key.slice(0, -2) + nearMin;
+                    if (pmfData.index?.[nearKey] !== undefined) {
+                        idx = pmfData.index[nearKey];
+                        break;
+                    }
+                }
+            }
+            
+            if (idx === undefined) {
+                statsDiv.innerHTML = `<div style="color: #999;">No PMF for ${key}</div>`;
+                return;
+            }
+            
+            const pmf = pmfData[`pmf_${horizon}`]?.[idx];
+            const binCenters = pmfData[`bin_centers_${horizon}`] || pmfData['bin_centers'];
+            
+            if (!pmf || !binCenters) {
+                statsDiv.innerHTML = `<div style="color: #999;">No PMF for +${horizon}min</div>`;
+                return;
+            }
+            
+            renderPMFChart(chartId, 'pmfChartSingle', pmf, horizon, actualDelta, binCenters, color, statsDiv, modelType);
+        }
+        
+        function renderPMFChart(chartId, chartVar, pmf, horizon, actualDelta, binCenters, color, statsDiv, modelType) {
+            const ctx = document.getElementById(chartId).getContext('2d');
+            
+            // Find quantiles from PMF
+            const cdf = [];
+            let cumsum = 0;
+            for (let i = 0; i < pmf.length; i++) {
+                cumsum += pmf[i];
+                cdf.push(cumsum);
+            }
+            
+            const findQuantile = (q) => {
+                for (let i = 0; i < cdf.length; i++) {
+                    if (cdf[i] >= q) return binCenters[i];
+                }
+                return binCenters[binCenters.length - 1];
+            };
+            
+            const q10 = findQuantile(0.1);
+            const q50 = findQuantile(0.5);
+            const q90 = findQuantile(0.9);
+            const mean = pmf.reduce((sum, p, i) => sum + p * binCenters[i], 0);
+            
+            // Create bar chart data
+            const chartData = binCenters.map((delta, i) => ({
+                x: delta,
+                y: pmf[i]
+            }));
+            
+            // Determine bar colors using the model's color
+            const colorRgb = color === '#f97316' ? '249, 115, 22' : '16, 185, 129';
+            const barColors = binCenters.map(delta => {
+                if (delta >= q10 && delta <= q90) {
+                    return `rgba(${colorRgb}, 0.7)`;
+                }
+                return `rgba(${colorRgb}, 0.3)`;
+            });
+            
+            // Create annotations for quantiles and actual
+            const annotations = {
+                q10Line: {
+                    type: 'line',
+                    xMin: q10,
+                    xMax: q10,
+                    borderColor: `rgba(${colorRgb}, 0.6)`,
+                    borderWidth: 2,
+                    borderDash: [4, 4]
+                },
+                q50Line: {
+                    type: 'line',
+                    xMin: q50,
+                    xMax: q50,
+                    borderColor: color,
+                    borderWidth: 3
+                },
+                q90Line: {
+                    type: 'line',
+                    xMin: q90,
+                    xMax: q90,
+                    borderColor: `rgba(${colorRgb}, 0.6)`,
+                    borderWidth: 2,
+                    borderDash: [4, 4]
+                }
+            };
+            
+            // Add actual delta line if available
+            if (actualDelta !== null) {
+                annotations.actualLine = {
+                    type: 'line',
+                    xMin: actualDelta,
+                    xMax: actualDelta,
+                    borderColor: '#4facfe',
+                    borderWidth: 3
+                };
+            }
+            
+            const newChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    datasets: [{
+                        label: 'Probability',
+                        data: chartData,
+                        backgroundColor: barColors,
+                        borderColor: color,
+                        borderWidth: 0,
+                        barPercentage: 1.0,
+                        categoryPercentage: 1.0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        annotation: { annotations },
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => `Δ = ${items[0].raw.x} mg/dL`,
+                                label: (item) => `P = ${(item.raw.y * 100).toFixed(2)}%`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: { display: true, text: 'Delta (mg/dL)' },
+                            min: Math.max(-100, binCenters[0]),
+                            max: Math.min(120, binCenters[binCenters.length - 1]),
+                            ticks: { stepSize: 20 }
+                        },
+                        y: {
+                            title: { display: true, text: 'Probability' },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Store chart reference
+            if (modelType === 'single') pmfChartSingle = newChart;
+            else pmfChartMulti = newChart;
+            
+            // Update stats
+            statsDiv.innerHTML = `
+                <div class="pmf-stat">
+                    <span class="pmf-stat-label">Q10</span>
+                    <span class="pmf-stat-value" style="color: ${color};">${q10}</span>
+                </div>
+                <div class="pmf-stat">
+                    <span class="pmf-stat-label">Q50</span>
+                    <span class="pmf-stat-value" style="color: ${color};">${q50}</span>
+                </div>
+                <div class="pmf-stat">
+                    <span class="pmf-stat-label">Q90</span>
+                    <span class="pmf-stat-value" style="color: ${color};">${q90}</span>
+                </div>
+                <div class="pmf-stat">
+                    <span class="pmf-stat-label">Width</span>
+                    <span class="pmf-stat-value">${q90 - q10}</span>
+                </div>
+                ${actualDelta !== null ? `
+                <div class="pmf-stat">
+                    <span class="pmf-stat-label">Actual</span>
+                    <span class="pmf-stat-value" style="color: #4facfe;">${Math.round(actualDelta)}</span>
+                </div>` : ''}
+            `;
+        }
+        
+        // Initialize
+        loadData();
+    </script>
+</body>
+</html>
